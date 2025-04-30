@@ -1,7 +1,8 @@
-from flask import Blueprint, request, render_template, redirect, url_for, flash
+from flask import Blueprint, request, render_template, redirect, url_for, flash, abort
 from app.models import db, User, ServiceRequest, Schedule
 from werkzeug.security import generate_password_hash
 from flask_login import login_user, logout_user, current_user, login_required
+from datetime import datetime
 
 bp = Blueprint('main', __name__)
 
@@ -51,9 +52,18 @@ def login():
         if user and user.check_password(password):
             login_user(user, remember=True)
             flash('Logged in successfully!', 'success')
-            next_page = request.args.get('next') or url_for('main.home')
-            return redirect(next_page or url_for('main.home'))
-        flash('Invalid credentials', 'danger')
+
+            # Redirect based on role
+            next_page = request.args.get('next')
+            if not next_page:
+                if user.role == 'serviceman':
+                    next_page = url_for('main.service_requests')
+                else:
+                    next_page = url_for('main.profile')
+            return redirect(next_page)
+
+        flash('Invalid email or password', 'danger')
+
     return render_template('login.html')
 
 
@@ -112,3 +122,131 @@ def debug_session():
 @bp.route('/debug/users')
 def debug_users():
     return {'users': [{'id': u.id, 'name': u.name} for u in User.query.all()]}
+
+
+# Blueprint route for user profile
+
+@bp.route('/profile')
+@login_required  # Ensure that the user is logged in
+def profile():
+    return render_template('profile.html', user=current_user)
+
+
+# Blueprint route for viewing all service requests for serviceman
+
+@bp.route('/service-requests')
+@login_required
+def service_requests():
+    if current_user.role != 'serviceman':
+        abort(403)
+
+    # Get all pending requests that aren't already scheduled
+    pending_requests = ServiceRequest.query.filter_by(
+        status='pending'
+    ).outerjoin(
+        Schedule
+    ).filter(
+        Schedule.id.is_(None)
+    ).all()
+
+    return render_template('service_requests.html', requests=pending_requests)
+
+# Blueprint route for viewing all scheduled service requests for serviceman
+
+
+@bp.route('/schedule-request/<int:request_id>', methods=['GET', 'POST'])
+def schedule_request(request_id):
+    service_request = ServiceRequest.query.get_or_404(request_id)
+
+    # Get the current time
+    now = datetime.now()
+
+    return render_template('schedule_request.html', request=service_request, now=now)
+
+# blueprint route for calendar view for serviceman
+
+
+@bp.route('/calendar')
+@login_required
+def calendar():
+    if current_user.role != 'serviceman':
+        abort(403)
+
+    # Get all scheduled requests for the serviceman
+    scheduled_requests = Schedule.query.filter_by(
+        serviceman_id=current_user.id).all()
+
+    return render_template('main/calendar.html', schedules=scheduled_requests)
+
+
+# Blueprint for debuging routes
+
+@bp.route('/debug/relationships')
+def debug_relationships():
+    # Create test data if none exists
+    if not User.query.first():
+        user = User(name="Test User", contact="test@example.com",
+                    address="123 St", password=generate_password_hash("test"), role="resident")
+        db.session.add(user)
+        db.session.commit()
+
+        request = ServiceRequest(
+            user_id=user.id,
+            service_type="debug",
+            description="Test relationship"
+        )
+        db.session.add(request)
+        db.session.commit()
+
+    # Test relationships
+    user = User.query.first()
+    request = ServiceRequest.query.first()
+
+    return {
+        'user_to_requests': bool(user.service_requests),
+        'request_to_user': bool(request.user),
+        'user': user.name,
+        'request': request.id
+    }
+
+
+# # Blueprint route for calander
+
+
+# @bp.route('/calendar')
+# @login_required
+# def calendar():
+#     if current_user.role != 'serviceman':
+#         abort(403)
+
+#     # Get all scheduled requests for the serviceman
+#     scheduled_requests = Schedule.query.filter_by(
+#         serviceman_id=current_user.id).all()
+
+#     return render_template('calendar.html', schedules=scheduled_requests)
+
+
+@bp.route('/test-user')
+def test_user():
+    from app.models import User  # Test import
+    users = User.query.all()
+    return str([u.name for u in users])
+
+
+@bp.route('/test-db')
+def test_db():
+    try:
+        from app.models import User
+        test_user = User(
+            name="Test User",
+            contact="test@example.com",
+            address="123 Test St",
+            password="temp_password",  # Will be hashed
+            role="resident"
+        )
+        test_user.set_password("temp_password")
+        db.session.add(test_user)
+        db.session.commit()
+        return "Database operations successful! Created test user."
+    except Exception as e:
+        return f"Database error: {str(e)}", 500
