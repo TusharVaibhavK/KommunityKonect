@@ -1,0 +1,28 @@
+.service-request-container {
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 2rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+  }
+  .request-list {
+    list-style: none;
+    padding: 0;
+  }
+  .request-list li {
+    padding: 0.5rem 0;
+  }
+  .request-list a {
+    text-decoration: none;
+    color: #007bff;
+  }
+  .request-list a:hover {
+    text-decoration: underline;
+  }
+  .form-group textarea {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    min-height: 100px;
+  }
