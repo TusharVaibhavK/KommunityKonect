@@ -1,0 +1,73 @@
+{% extends "base.html" %} {% block content %}
+<div class="container">
+  <h2>Available Service Requests</h2>
+
+  {% if requests %}
+  <div class="request-list">
+    {% for request in requests %}
+    <div class="request-card">
+      <div class="request-header">
+        <h3>Request #{{ request.id }}</h3>
+        <span class="badge">{{ request.service_type|capitalize }}</span>
+      </div>
+
+      <div class="request-body">
+        <p><strong>Description:</strong> {{ request.description }}</p>
+        <p><strong>Requested by:</strong> {{ request.user.name }}</p>
+        <p><strong>Contact:</strong> {{ request.user.contact }}</p>
+        <p><strong>Address:</strong> {{ request.user.address }}</p>
+
+        {% if request.photo_url %}
+        <div class="request-photo">
+          <img
+            src="{{ request.photo_url }}"
+            alt="Request photo"
+            style="max-width: 200px"
+          />
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="request-actions">
+        <a
+          href="{{ url_for('main.schedule_request', request_id=request.id) }}"
+          class="btn btn-primary"
+        >
+          Schedule This Request
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info">No pending service requests available.</div>
+  {% endif %}
+</div>
+
+<style>
+  .request-list {
+    margin-top: 20px;
+  }
+  .request-card {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+  .request-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .badge {
+    background: #007bff;
+    color: white;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 0.9em;
+  }
+  .request-actions {
+    margin-top: 10px;
+  }
+</style>
+{% endblock %}

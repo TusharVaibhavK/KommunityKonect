@@ -1,0 +1,38 @@
+{% extends "base.html" %} {% block content %}
+<div class="container">
+  <h2>Schedule Request #{{ request.id }}</h2>
+
+  <div class="request-details">
+    <p><strong>Service Type:</strong> {{ request.service_type|capitalize }}</p>
+    <p><strong>Description:</strong> {{ request.description }}</p>
+  </div>
+
+  <form method="POST">
+    <div class="form-group">
+      <label for="scheduled_time">Date & Time:</label>
+      <input
+        type="datetime-local"
+        name="scheduled_time"
+        min="{{ now.strftime('%Y-%m-%dT%H:%M') }}"
+      />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Confirm Schedule</button>
+    <a href="{{ url_for('main.service_requests') }}" class="btn btn-secondary"
+      >Cancel</a
+    >
+  </form>
+</div>
+
+<style>
+  .request-details {
+    margin-bottom: 20px;
+  }
+  .form-group {
+    margin-bottom: 15px;
+  }
+  .btn {
+    margin-right: 10px;
+  }
+</style>
+{% endblock %}

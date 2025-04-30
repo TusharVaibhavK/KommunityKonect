@@ -1,0 +1,16 @@
+{% extends "base.html" %} {% block content %}
+<h2>My Schedule</h2>
+
+{% if schedules %}
+<ul>
+  {% for schedule in schedules %}
+  <li>
+    Service Request ID: {{ schedule.request_id }}<br />
+    Scheduled Time: {{ schedule.scheduled_time }}<br />
+    Status: {{ schedule.status }}
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p>No scheduled services.</p>
+{% endif %} {% endblock %}
