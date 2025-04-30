@@ -1,0 +1,24 @@
+<!-- app/templates/request_service.html -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Request Service</title>
+  </head>
+  <body>
+    <h2>Submit a Repair Request</h2>
+    <form action="/request-service" method="POST">
+      <label for="user_id">Your User ID:</label><br />
+      <input type="number" name="user_id" required /><br /><br />
+
+      <label for="description">Describe the issue:</label><br />
+      <textarea name="description" rows="4" cols="50" required></textarea
+      ><br /><br />
+
+      <label for="photo_url">Photo URL (optional):</label><br />
+      <input type="text" name="photo_url" /><br /><br />
+
+      <button type="submit">Submit Request</button>
+    </form>
+  </body>
+</html>
