@@ -1,42 +1,31 @@
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_login import LoginManager
 from flask_cors import CORS
-from repair_service_platform.config import Config
-from repair_service_platform.app.extentions import db, migrate, login_manager
+from app.extensions import db, migrate, login_manager
+from config import Config
 
-def create_app():
+def create_app(config_class=Config):
     app = Flask(__name__)
-    app.config.from_object(Config)
-
-    # Initialize CORS
-    CORS(app, resources={r"/api/*": {"origins": "http://localhost:5173"}})
-
+    
+    # Configure the app
+    app.config.from_object(config_class)
+    
     # Initialize extensions
+    CORS(app)
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
-    login_manager.login_view = 'main.login'
-
-    with app.app_context():
-        # Import models after db initialization to avoid circular imports
-        from repair_service_platform.app.models import User
-
-        # Define user_loader for Flask-Login
-        @login_manager.user_loader
-        def load_user(user_id):
-            return User.query.get(int(user_id))
-
-    # Import and register blueprint after app context is set up
-    try:
-        from repair_service_platform.app.routes import bp as main_bp
-        app.register_blueprint(main_bp, url_prefix='/api')
-        print("Blueprint registered successfully")
-    except ImportError as e:
-        print(f"Failed to import blueprint: {e}")
-        raise
-
+    
+    # Set up user_loader
+    from app.models import User
+    
+    @login_manager.user_loader
+    def load_user(user_id):
+        return User.query.get(int(user_id))
+    
+    # Register blueprints
+    from app.routes import bp as main_bp
+    app.register_blueprint(main_bp)
+    
     return app
 
 if __name__ == "__main__":

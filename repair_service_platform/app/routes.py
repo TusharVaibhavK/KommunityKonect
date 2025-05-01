@@ -1,12 +1,21 @@
 from flask import Blueprint, request, render_template, redirect, url_for, flash, abort, jsonify
-from repair_service_platform.app.models import db, User, ServiceRequest, Schedule, MarketPrice
+from app.models import db, User, ServiceRequest, Schedule, MarketPrice
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user, current_user, login_required
 from datetime import datetime
-from repair_service_platform.app.MarketScraperBot.market_scraper import scrape_urbanclap_prices
-
 
 bp = Blueprint('main', __name__)
+
+@bp.route('/')
+def index():
+    return render_template('index.html')
+
+# Add routes for market prices
+@bp.route('/market-prices')
+def market_prices():
+    prices = MarketPrice.query.all()
+    return render_template('market_prices.html', prices=prices)
+
 
 # Existing HTML-based Routes
 
@@ -28,10 +37,11 @@ def register():
         if not all([name, contact, address, password, role]):
             flash("Please fill all fields.", "danger")
             return redirect(url_for('main.register'))
-
-        hashed_password = generate_password_hash(password)
-        user = User(name=name, contact=contact, address=address,
-                    password=hashed_password, role=role)
+        
+        # Create user without password argument
+        user = User(name=name, contact=contact, address=address, role=role)
+        # Set password with the dedicated method
+        user.set_password(password)
 
         db.session.add(user)
         db.session.commit()
@@ -72,7 +82,7 @@ def login():
 
         if request.is_json:
             return jsonify({"error": "Invalid credentials"}), 401
-        flash('Invalid email or password', 'danger')
+        flash('Invalid email or password', "danger")
 
     return render_template('login.html')
 
@@ -225,9 +235,9 @@ def test_db():
             name="Test User",
             contact="test@example.com",
             address="123 Test St",
-            password="temp_password",
             role="resident"
         )
+        # Set password with the dedicated method
         test_user.set_password("temp_password")
         db.session.add(test_user)
         db.session.commit()
@@ -293,9 +303,11 @@ def api_register():
     if User.query.filter_by(contact=contact).first():
         return jsonify({"error": "Contact already exists"}), 400
 
-    hashed_password = generate_password_hash(password)
-    new_user = User(name=name, contact=contact, address=address,
-                    password=hashed_password, role=role)
+    # Create user without password argument
+    new_user = User(name=name, contact=contact, address=address, role=role)
+    # Set password with the dedicated method
+    new_user.set_password(password)
+    
     db.session.add(new_user)
     db.session.commit()
     login_user(new_user)
