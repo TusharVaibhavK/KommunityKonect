@@ -1,8 +1,10 @@
 from flask import Blueprint, request, render_template, redirect, url_for, flash, abort, jsonify
-from app.models import db, User, ServiceRequest, Schedule
+from repair_service_platform.app.models import db, User, ServiceRequest, Schedule, MarketPrice
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, logout_user, current_user, login_required
 from datetime import datetime
+from repair_service_platform.app.MarketScraperBot.market_scraper import scrape_urbanclap_prices
+
 
 bp = Blueprint('main', __name__)
 
@@ -232,6 +234,33 @@ def test_db():
         return "Database operations successful! Created test user."
     except Exception as e:
         return f"Database error: {str(e)}", 500
+
+
+
+# Market Price Scraper Route
+@bp.route('/market-rate')
+def market_rate():
+    service = request.args.get('service', '')
+    result = MarketPrice.query.filter(MarketPrice.service_name.ilike(f"%{service}%")).order_by(MarketPrice.scraped_at.desc()).first()
+    if result:
+        return jsonify({
+            "service": service,
+            "avg_price": result.avg_price,
+            "scraped_at": result.scraped_at.isoformat()
+        })
+    else:
+        return jsonify({"error": "No data found"}), 404
+# @bp.route('/api/market-rate/<int:id>')
+# def market_rate_by_id(id):
+#     result = MarketPrice.query.get(id)
+#     if result:
+#         return jsonify({
+#             "service": result.service_name,
+#             "avg_price": result.avg_price,
+#             "scraped_at": result.scraped_at.isoformat()
+#         })
+#     else:
+#         return jsonify({"error": "No data found"}), 404
 
 # New RESTful API Endpoints
 
