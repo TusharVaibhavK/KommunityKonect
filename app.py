@@ -1,33 +1,105 @@
-from flask import Flask, jsonify, request, render_template
-from flask_cors import CORS  # You'll need to install this: pip install flask-cors
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
-from flask_login import LoginManager
-from repair_service_platform.config import Config  # Updated import path
-from repair_service_platform.app.models import db, User  # Updated import path
-from repair_service_platform.app.routes import bp as main_bp  # Updated import path
-from repair_service_platform.app.extentions import db, migrate, login_manager  # Updated import path
-from repair_service_platform.app import create_app  # Updated import path
+# import os
+# import streamlit as st
+# from pymongo import MongoClient
+# from openai import OpenAI
+# from dotenv import load_dotenv
 
-app = Flask(__name__)
-CORS(app)  # This enables CORS for all routes
+# # Load environment variables
+# load_dotenv()
 
-# Add API routes for your React app
-@app.route('/api/data', methods=['GET'])
-def get_data():
-    # Replace this with your actual data
-    data = {
-        "message": "Hello from Flask!",
-        "items": ["item1", "item2", "item3"]
-    }
-    return jsonify(data)
+# # Set up DeepSeek (NVIDIA NIM) client
+# client_ai = OpenAI(
+#     base_url="https://integrate.api.nvidia.com/v1",
+#     api_key=os.getenv("NVIDIA_API_KEY")
+# )
 
-@app.route('/api/submit', methods=['POST'])
-def submit_data():
-    data = request.json
-    # Process the data received from React
-    # ...
-    return jsonify({"status": "success", "message": "Data received"})
+# # Set up MongoDB client
+# mongo_uri = os.getenv("MONGODB_URI")
+# client_db = MongoClient(mongo_uri)
+# db = client_db["kommuniti"]
+# requests_collection = db["service_requests"]
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# st.set_page_config(page_title="Household Service Request",
+#                    layout="centered", page_icon="🛠️")
+# st.title("🛠️ Household Service Request")
+
+# with st.form("request_form"):
+#     name = st.text_input("Your Name")
+#     category = st.selectbox("Service Category", [
+#                             "Plumbing", "Electrical", "Carpentry", "Appliance Repair", "Painting", "Other"])
+#     description = st.text_area("Describe the issue")
+#     urgency = st.selectbox("Urgency", ["Low", "Medium", "High"])
+#     location = st.text_input("Location")
+#     photo = st.file_uploader("Upload a photo of the problem", type=[
+#                              "png", "jpg", "jpeg"])
+
+#     submitted = st.form_submit_button("Submit Request")
+
+# if submitted:
+#     request_data = {
+#         "name": name,
+#         "category": category,
+#         "description": description,
+#         "urgency": urgency,
+#         "location": location,
+#     }
+#     requests_collection.insert_one(request_data)
+#     st.success("✅ Request submitted successfully!")
+
+#     # Construct the prompt for DeepSeek
+#     prompt = f"""
+#     Client Name: {name}
+#     Service Type: {category}
+#     Urgency: {urgency}
+#     Location: {location}
+
+#     Issue Description:
+#     {description}
+
+#     Generate a professional service report in a structured format (title, summary, scope of work, estimated costs, next steps, notes).
+#     Avoid markdown formatting.
+#     """
+
+#     if st.button("Generate Service Report"):
+#         with st.spinner("Generating report using DeepSeek..."):
+#             response = client_ai.chat.completions.create(
+#                 model="deepseek-ai/deepseek-r1",
+#                 messages=[{"role": "user", "content": prompt}],
+#                 temperature=0.6,
+#                 top_p=0.7,
+#                 max_tokens=4096,
+#                 stream=True
+#             )
+
+#             report_text = ""
+#             for chunk in response:
+#                 if chunk.choices[0].delta.content:
+#                     report_text += chunk.choices[0].delta.content
+#                     st.write(chunk.choices[0].delta.content)
+
+#         st.download_button("📄 Download Report", report_text,
+#                            file_name="service_report.txt")
+#         st.success("✅ Report generated successfully!")
+#         st.balloons()
+#         st.balloons()
+
+import streamlit as st
+from utils.auth import verify_user
+from utils.db import users_col
+
+st.set_page_config(page_title="Kommuniti App", page_icon="🔧")
+
+st.title("🔐 Login to Kommuniti Dashboard")
+username = st.text_input("Username")
+password = st.text_input("Password", type="password")
+
+if st.button("Login"):
+    user = verify_user(username, password)
+    if user:
+        st.success(f"Welcome, {user['username']}! Redirecting...")
+        if user["role"] == "admin":
+            st.switch_page("pages/1_Admin_Dashboard.py")
+        elif user["role"] == "serviceman":
+            st.switch_page("pages/2_Serviceman_View.py")
+    else:
+        st.error("Invalid username or password")
