@@ -1,0 +1,18 @@
+name: Deploy
+on: [push]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install -r requirements.txt
+      - run: python -m pytest tests/
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scp -r . user@server:/path/to/app
+      - run: ssh user@server "systemctl restart your_bot_service"
