@@ -1,45 +1,78 @@
 import streamlit as st
-from utils.db import requests_col
+from utils.db import requests_col, users_col
 from bson import ObjectId
 from datetime import datetime
 from pages.Layout import layout  # Import the shared layout
 
+# Shared layout + logout
 layout()
 
+# Only admins allowed
 if "username" not in st.session_state or st.session_state.get("role") != "admin":
     st.warning("You must be an admin to access this page.")
     st.stop()
 
-st.set_page_config(page_title="Admin Dashboard", page_icon="🛠️")
-# Call the layout function to make logout available
+
 st.title("🛠️ Admin Dashboard")
 
+# Filters
 status_filter = st.selectbox("Filter by Status", ["All", "Pending", "In Progress", "Completed"])
+urgency_filter = st.selectbox("Filter by Urgency", ["All", "Low", "Medium", "High"])
 
-query = {} if status_filter == "All" else {"status": status_filter}
+# Build query
+query = {}
+if status_filter != "All":
+    query["status"] = status_filter
+if urgency_filter != "All":
+    query["urgency"] = urgency_filter
+
+# Fetch jobs
 requests = list(requests_col.find(query))
 
-for req in requests:
-    with st.expander(f"{req['category']} - {req['name']} @ {req['location']}"):
-        st.write("**Description:**", req["description"])
-        st.write("**Urgency:**", req["urgency"])
-        st.write("**Status:**", req.get("status", "Pending"))
-        st.write("**Assigned To:**", req.get("assigned_to", "Not Assigned"))
-        st.write("**Timestamp:**", req.get("timestamp", "N/A"))
+if not requests:
+    st.info("No matching service requests found.")
+else:
+    # Get all servicemen
+    servicemen = [user["username"] for user in users_col.find({"role": "serviceman"})]
 
-        new_status = st.selectbox("Update Status", ["Pending", "In Progress", "Completed"], index=["Pending", "In Progress", "Completed"].index(req.get("status", "Pending")))
-        assigned_to = st.text_input("Assign to", value=req.get("assigned_to", ""))
-        admin_notes = st.text_area("Admin Notes", value=req.get("admin_notes", ""))
+    for req in requests:
+        with st.expander(f"{req['category']} - {req['name']} @ {req['location']}"):
+            st.write(f"**Description:** {req['description']}")
+            st.write(f"**Urgency:** {req['urgency']}")
+            st.write(f"**Status:** `{req.get('status', 'Pending')}`")
+            st.write(f"**Assigned To:** {req.get('assigned_to', 'Not Assigned')}")
+            st.write(f"**Timestamp:** {req.get('timestamp', 'N/A')}")
 
-        if st.button("Update", key=str(req["_id"])):
-            requests_col.update_one(
-                {"_id": ObjectId(req["_id"])},
-                {"$set": {
-                    "status": new_status,
-                    "assigned_to": assigned_to,
-                    "admin_notes": admin_notes,
-                    "timestamp": datetime.utcnow().isoformat()
-                }}
+            # Update Fields
+            new_status = st.selectbox(
+                "Update Status",
+                ["Pending", "In Progress", "Completed"],
+                index=["Pending", "In Progress", "Completed"].index(req.get("status", "Pending")),
+                key=f"status_{req['_id']}"
             )
-            st.success("Updated successfully!")
-            st.experimental_rerun()
+
+            assigned_to = st.selectbox(
+                "Assign to Serviceman",
+                ["Not Assigned"] + servicemen,
+                index=(["Not Assigned"] + servicemen).index(req.get("assigned_to", "Not Assigned")),
+                key=f"assign_{req['_id']}"
+            )
+
+            admin_notes = st.text_area(
+                "Admin Notes",
+                value=req.get("admin_notes", ""),
+                key=f"notes_{req['_id']}"
+            )
+
+            if st.button("✅ Update", key=f"update_{req['_id']}"):
+                requests_col.update_one(
+                    {"_id": ObjectId(req["_id"])},
+                    {"$set": {
+                        "status": new_status,
+                        "assigned_to": assigned_to if assigned_to != "Not Assigned" else None,
+                        "admin_notes": admin_notes,
+                        "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                    }}
+                )
+                st.success("✅ Updated successfully!")
+                st.experimental_rerun()
