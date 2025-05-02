@@ -1,0 +1,42 @@
+import streamlit as st
+from utils.db import users_col
+import hashlib
+from pages.Layout import layout  # Import the shared layout
+
+st.set_page_config(page_title="Login / Register", page_icon="🔐")
+st.title("🔐 Login or Register")
+
+menu = st.selectbox("Choose Action", ["Login", "Register"])
+
+if menu == "Register":
+    st.subheader("Create New Account")
+    new_user = st.text_input("Username")
+    new_pass = st.text_input("Password", type='password')
+    role = st.selectbox("Role", ["admin", "serviceman"])
+
+    if st.button("Register"):
+        hashed_pass = hashlib.sha256(new_pass.encode()).hexdigest()
+        if users_col.find_one({"username": new_user}):
+            st.warning("🚫 Username already exists")
+        else:
+            users_col.insert_one({"username": new_user, "password": hashed_pass, "role": role})
+            st.success("✅ Registered successfully. You can now login.")
+
+if menu == "Login":
+    st.subheader("Login to your account")
+    username = st.text_input("Username")
+    password = st.text_input("Password", type='password')
+
+    if st.button("Login"):
+        hashed_pass = hashlib.sha256(password.encode()).hexdigest()
+        user = users_col.find_one({"username": username, "password": hashed_pass})
+        if user:
+            st.session_state["username"] = user["username"]
+            st.session_state["role"] = user["role"]
+            st.success(f"✅ Logged in as {user['role'].capitalize()}")
+            if user['role'] == "admin":
+                st.switch_page("pages/1_Admin_Dashboard.py")
+            else:
+                st.switch_page("pages/2_Serviceman_View.py")
+        else:
+            st.error("❌ Invalid credentials")
