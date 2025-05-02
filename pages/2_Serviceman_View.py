@@ -52,4 +52,4 @@ for job in assigned_jobs:
                 }}
             )
             st.success("Status updated!")
-            st.experimental_rerun()
+            # st.experimental_rerun()

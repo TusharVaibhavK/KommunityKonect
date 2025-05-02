@@ -3,6 +3,8 @@ import os
 import time
 from dotenv import load_dotenv
 from utils.image_processing import analyze_telegram_photo 
+from utils.db import requests_col  # Your existing collection
+from datetime import datetime
 
 load_dotenv()
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -46,16 +48,31 @@ def handle_photo(chat_id, file_id):
     file_path = file_info['result']['file_path']
     photo_url = f"https://api.telegram.org/file/bot{TOKEN}/{file_path}"
     
-    # Analyze image
+    # Analyze image (existing code)
     analysis = analyze_telegram_photo(photo_url)
     
     if analysis.get("success"):
+        # Save to MongoDB - MATCHING YOUR STREAMLIT UI STRUCTURE
+        new_request = {
+            "user_id": str(chat_id),
+            "name": "Telegram User",  # Default since name isn't collected
+            "category": analysis["issue_type"],
+            "description": "Submitted via Telegram",
+            "location": "Not specified",
+            "urgency": "Medium",
+            "status": "Pending",
+            "photo_url": photo_url,
+            "timestamp": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
+            "source": "telegram"  # Helpful for filtering
+        }
+        requests_col.insert_one(new_request)
+        
         response_text = (
-            f"🔍 *Analysis Complete*\n\n"
+            f"📋 *Request Received*\n\n"
             f"• **Issue Type**: {analysis['issue_type']}\n"
             f"• **Confidence**: {analysis['confidence']:.1f}%\n\n"
-            f"Connecting you to a specialist..."
-    )
+            f"Our admin will assign a specialist shortly."
+        )
     else:
         response_text = f"⚠️ Analysis failed: {analysis.get('error')}"
     
@@ -68,7 +85,7 @@ def handle_photo(chat_id, file_id):
         }
     )
     
-    print(f"Photo analyzed for {chat_id}: {analysis}")
+    print(f"Request saved for {chat_id}: {analysis['issue_type']}")
 
 def handle_updates():
     global LAST_UPDATE_ID, PROCESSED_MESSAGES
@@ -104,6 +121,33 @@ def handle_updates():
 
     except Exception as e:
         print(f"Error: {str(e)}")
+
+def notify_assignment(request_id, serviceman_username):
+    """Notify both user and serviceman about assignment"""
+    request = requests_col.find_one({"_id": request_id})
+    
+    # Notify user who submitted request
+    if request.get('source') == 'telegram':
+        send_message(
+            request['user_id'],
+            f"👷 *Specialist Assigned*\n\n"
+            f"Request #{request_id}\n"
+            f"Category: {request['category']}\n"
+            f"Serviceman: @{serviceman_username}\n\n"
+            f"Status: {request['status']}"
+        )
+    
+    # Notify serviceman (if they have Telegram ID in your system)
+    serviceman = db.users.find_one({"username": serviceman_username})
+    if serviceman and 'telegram' in serviceman:
+        send_message(
+            serviceman['telegram'],
+            f"🔧 *New Assignment*\n\n"
+            f"Request #{request_id}\n"
+            f"Category: {request['category']}\n"
+            f"Location: {request['location']}\n\n"
+            f"Photo: {request['photo_url']}"
+        )
 
 if __name__ == "__main__":
     print("ServiceBot ready (Photo handling enabled)")

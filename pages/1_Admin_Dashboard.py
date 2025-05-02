@@ -75,4 +75,4 @@ else:
                     }}
                 )
                 st.success("✅ Updated successfully!")
-                st.experimental_rerun()
+                # st.experimental_rerun()

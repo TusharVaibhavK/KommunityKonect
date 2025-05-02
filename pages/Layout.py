@@ -7,5 +7,5 @@ def layout():
         if st.button("🔒 Logout"):
             st.session_state.clear()
             st.success("Logged out successfully!")
-            st.experimental_rerun()
+            # st.experimental_rerun()
 
