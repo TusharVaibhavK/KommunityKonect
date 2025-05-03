@@ -18,6 +18,8 @@ db = mongo_client["your_db_name"]  # Replace with your DB name
 requests_col = db["service_requests"]
 
 # --- Tool Functions ---
+
+
 def get_my_jobs(serviceman_username: str) -> str:
     """Fetch all pending jobs for a serviceman."""
     jobs = list(requests_col.find({
@@ -27,6 +29,7 @@ def get_my_jobs(serviceman_username: str) -> str:
     if not jobs:
         return "No pending jobs found."
     return "\n".join([f"Job ID: {job['_id']}, Description: {job.get('description', 'N/A')}" for job in jobs])
+
 
 def complete_job(job_id: str, serviceman_username: str) -> str:
     """Mark a job as completed. Works with string IDs (e.g., 'job1')."""
@@ -41,6 +44,15 @@ def complete_job(job_id: str, serviceman_username: str) -> str:
     except Exception as e:
         return f"Error updating job: {str(e)}"
 
+
+def get_job_status(job_id: str) -> str:
+    """Fetch the status of a specific job by ID."""
+    job = requests_col.find_one({"_id": job_id})
+    if not job:
+        return f"No job found with ID: {job_id}"
+    return f"Job {job_id} status: {job.get('status', 'Unknown')}"
+
+
 def get_my_jobs(serviceman_username: str) -> str:
     """List jobs with better formatting."""
     jobs = list(requests_col.find({
@@ -49,7 +61,7 @@ def get_my_jobs(serviceman_username: str) -> str:
     }))
     if not jobs:
         return "No pending jobs found."
-    
+
     response = []
     for job in jobs:
         response.append(
@@ -60,13 +72,15 @@ def get_my_jobs(serviceman_username: str) -> str:
     return "\n".join(response)
 
 # --- Agent Logic ---
+
+
 def run_agent(user_input: str, serviceman_username: str = "ramu123") -> str:
     # Lowercase input for case-insensitive matching
     input_lower = user_input.lower()
-    
+
     if "my jobs" in input_lower or "list jobs" in input_lower:
         return get_my_jobs(serviceman_username)
-        
+
     elif "complete" in input_lower:
         # Extract job ID from input (e.g., "complete job 123")
         words = user_input.split()
@@ -74,12 +88,12 @@ def run_agent(user_input: str, serviceman_username: str = "ramu123") -> str:
         if not job_id:
             return "Please specify a Job ID (e.g., 'complete job 123')."
         return complete_job(job_id, serviceman_username)
-        
+
     elif "status of job" in input_lower:
         # Extract job ID from input
         job_id = input_lower.split("status of job")[-1].strip()
         return get_job_status(job_id)
-        
+
     else:
         # General questions
         response = nim_client.chat.completions.create(
