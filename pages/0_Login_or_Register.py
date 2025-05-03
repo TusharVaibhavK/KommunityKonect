@@ -12,7 +12,7 @@ if menu == "Register":
     st.subheader("Create New Account")
     new_user = st.text_input("Username")
     new_pass = st.text_input("Password", type='password')
-    role = st.selectbox("Role", ["admin", "serviceman"])
+    role = st.selectbox("Select your role", ["Admin", "Serviceman", "Resident"])
 
     if st.button("Register"):
         hashed_pass = hashlib.sha256(new_pass.encode()).hexdigest()

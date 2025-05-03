@@ -13,6 +13,8 @@ db = client["kommuniti"]
 # Collections
 users_col = db["users"]
 requests_col = db["service_requests"]
+schedules_col = db["schedules"]
+calendar_config_col = db["calendar_config"]
 
 def initialize_db():
     """Set up database indexes and default data"""
