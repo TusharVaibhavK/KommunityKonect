@@ -10,7 +10,7 @@ ip = requests.get("https://api.ipify.org").text
 # Display it (or log it)
 st.write(f"Streamlit App's Outbound IP: **{ip}**")
 
-st.set_page_config(page_title="Kommuniti App", page_icon="🔧")
+# st.set_page_config(page_title="Kommuniti App", page_icon="🔧")
 
 st.title("🔐 Login to Kommuniti Dashboard")
 username = st.text_input("Username")
