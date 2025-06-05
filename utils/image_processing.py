@@ -35,12 +35,13 @@ ISSUE_CATEGORIES = [
     "roof damage"
 ]
 
+
 def analyze_telegram_photo(photo_url):
     """Analyze home service issues from photos"""
     try:
         response = requests.get(photo_url, timeout=10)
         img = Image.open(BytesIO(response.content))
-        
+
         inputs = processor(
             text=ISSUE_CATEGORIES,
             images=img,
@@ -48,18 +49,18 @@ def analyze_telegram_photo(photo_url):
             padding=True,
             truncation=True
         )
-        
+
         with torch.no_grad():
             outputs = model(**inputs)
             probs = outputs.logits_per_image.softmax(dim=1)
             top_prob, top_idx = torch.max(probs, dim=1)
-        
+
         return {
             "issue_type": ISSUE_CATEGORIES[top_idx],
             "confidence": float(top_prob) * 100,
             "success": True
         }
-        
+
     except Exception as e:
         return {
             "error": str(e),

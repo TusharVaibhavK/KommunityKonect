@@ -1,68 +1,82 @@
+"""
+Database connection module for KommunityKonect
+Handles MongoDB connection and collections
+"""
 import os
+import sys
+import logging
 from pymongo import MongoClient
+from pymongo.errors import ConnectionFailure, ConfigurationError
 from dotenv import load_dotenv
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
 
-# MongoDB connection
-mongo_uri = os.getenv("MONGODB_URI")
-client = MongoClient(mongo_uri)
-db = client["kommuniti"]
+# MongoDB connection string
+MONGO_URI = os.getenv("MONGODB_URI")
+DB_NAME = os.getenv("DB_NAME", "kommunity_konect")
 
-# Collections - Core Collections
-users_col = db["users"]
-requests_col = db["service_requests"]
-schedules_col = db["schedules"]
-calendar_config_col = db["calendar_config"]
-
-# Collections - Community Features
-communities_col = db["communities"]
-events_col = db["events"]
-invitations_col = db["invitations"]
+# Initialize connection and collections
+client = None
+db = None
+requests_col = None
+users_col = None
+schedules_col = None
+calendar_config_col = None
 
 
-def initialize_db():
-    """Set up database indexes and default data"""
-    # Create indexes for better query performance
-    users_col.create_index("telegram_id", unique=True)
-    users_col.create_index("username", unique=True)
-    requests_col.create_index("user_id")
-    requests_col.create_index("status")
+def connect_to_db():
+    """Establish connection to MongoDB"""
+    global client, db, requests_col, users_col, schedules_col, calendar_config_col
 
-    # Community collections indexes
-    communities_col.create_index("name", unique=True)
-    events_col.create_index("date")
-    events_col.create_index("organizer")
-    invitations_col.create_index("event_id")
-    invitations_col.create_index("recipient_id")
+    if not MONGO_URI:
+        logger.error("MONGO_URI environment variable is not set")
+        sys.exit(
+            "MongoDB connection string not found. Please set MONGO_URI environment variable.")
 
-    # Ensure admin user exists
-    if not users_col.find_one({"username": "admin"}):
-        users_col.insert_one({
-            "username": "admin",
-            "password": "admin123",  # Should be hashed in production
-            "role": "admin",
-            "name": "Admin User"
-        })
+    try:
+        # Create a MongoDB client with increased timeout
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
 
-    # Ensure default community exists
-    if not communities_col.find_one({"name": "Default"}):
-        communities_col.insert_one({
-            "name": "Default",
-            "description": "Main community group",
-            "members": ["admin"],
-            "created_at": datetime.now()
-        })
+        # Verify connection works by pinging the server
+        client.admin.command('ping')
 
-    print("Database initialized with community features")
+        logger.info("Connected to MongoDB successfully")
+
+        # Get database and collections
+        db = client[DB_NAME]
+        requests_col = db["service_requests"]
+        users_col = db["users"]
+        schedules_col = db["schedules"]
+        calendar_config_col = db["calendar_config"]
+
+        # Create indexes if they don't exist
+        requests_col.create_index("user_id")
+        requests_col.create_index("status")
+        users_col.create_index("username", unique=True)
+        users_col.create_index("telegram_id", unique=True)
+
+        return True
+
+    except ConnectionFailure as e:
+        logger.error(f"Could not connect to MongoDB: {e}")
+        sys.exit(f"Database connection failed: {e}")
+
+    except ConfigurationError as e:
+        logger.error(f"MongoDB configuration error: {e}")
+        sys.exit(f"Database configuration error: {e}")
+
+    except Exception as e:
+        logger.error(f"Unexpected error connecting to MongoDB: {e}")
+        sys.exit(f"Unexpected database error: {e}")
 
 
-if __name__ == "__main__":
-    from datetime import datetime
-    initialize_db()
-    print("Total users:", users_col.count_documents({}))
-    print("Total requests:", requests_col.count_documents({}))
-    print("Total communities:", communities_col.count_documents({}))
-    print("Total events:", events_col.count_documents({}))
-    print("Total invitations:", invitations_col.count_documents({}))
+# Connect to database on module load
+connect_to_db()

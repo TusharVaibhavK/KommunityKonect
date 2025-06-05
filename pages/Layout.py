@@ -1,9 +1,10 @@
 import streamlit as st
 from datetime import datetime, date, time
-from utils.db import users_col  
-from utils.calendar import calendar_view
+from utils.db import users_col
+from utils.calendar_c import calendar_view
 from utils.job_utils import log_job_action, get_serviceman_jobs
 from utils.notifications import notify_assignment, notify_completion
+
 
 def layout():
     """Shared layout for all pages with logout button and calendar"""

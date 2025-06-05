@@ -39,13 +39,15 @@ if view_community:
 if st.session_state["dashboard_view"] == "repairs":
     st.subheader("🔧 My Service Requests")
 
-    my_requests = requests_col.find({"user_id": current_user}).sort("timestamp", -1)
+    my_requests = requests_col.find(
+        {"user_id": current_user}).sort("timestamp", -1)
     for req in my_requests:
         st.markdown(f"**Request ID:** `{str(req['_id'])}`")
         st.write(f"**Status:** {req.get('status', 'N/A')}")
         st.write(f"**Assigned To:** {req.get('assigned_to', 'Not Assigned')}")
         st.image(req.get("photo_url", ""), width=300)
-        st.caption(f"Submitted on {req.get('timestamp', '')[:19].replace('T', ' ')}")
+        st.caption(
+            f"Submitted on {req.get('timestamp', '')[:19].replace('T', ' ')}")
         st.markdown("---")
 
 # ------------------------------------------
@@ -57,7 +59,8 @@ elif st.session_state["dashboard_view"] == "community":
     posts = posts_col.find().sort("timestamp", -1)
     for post in posts:
         st.markdown(f"**{post['title']}**")
-        st.caption(f"by `{post['author']}` at {post['timestamp'][:19].replace('T', ' ')}")
+        st.caption(
+            f"by `{post['author']}` at {post['timestamp'][:19].replace('T', ' ')}")
         st.write(post['content'])
         if post.get("invited_users"):
             st.info(f"Invited: {', '.join(post['invited_users'])}")

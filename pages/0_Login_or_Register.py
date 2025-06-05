@@ -12,14 +12,27 @@ if menu == "Register":
     st.subheader("Create New Account")
     new_user = st.text_input("Username")
     new_pass = st.text_input("Password", type='password')
-    role = st.selectbox("Select your role", ["Admin", "Serviceman", "Resident"])
+    role = st.selectbox("Select your role", [
+                        "Admin", "Serviceman", "Resident"])
+    telegram_id = st.text_input("Telegram ID (Optional)", "")
 
     if st.button("Register"):
         hashed_pass = hashlib.sha256(new_pass.encode()).hexdigest()
         if users_col.find_one({"username": new_user}):
             st.warning("🚫 Username already exists")
         else:
-            users_col.insert_one({"username": new_user, "password": hashed_pass, "role": role})
+            # Create user document with proper handling of telegram_id
+            user_doc = {
+                "username": new_user,
+                "password": hashed_pass,
+                "role": role
+            }
+
+            # Only add telegram_id if it's provided
+            if telegram_id:
+                user_doc["telegram_id"] = telegram_id
+
+            users_col.insert_one(user_doc)
             st.success("✅ Registered successfully. You can now login.")
 
 if menu == "Login":
@@ -29,7 +42,8 @@ if menu == "Login":
 
     if st.button("Login"):
         hashed_pass = hashlib.sha256(password.encode()).hexdigest()
-        user = users_col.find_one({"username": username, "password": hashed_pass})
+        user = users_col.find_one(
+            {"username": username, "password": hashed_pass})
         if user:
             st.session_state["username"] = user["username"]
             st.session_state["role"] = user["role"]

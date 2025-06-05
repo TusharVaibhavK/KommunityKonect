@@ -13,7 +13,13 @@ from utils.calendar_utils import (
 # Shared layout + logout
 layout()
 
-# Only admins allowed
+# Debug info - Add this to see what's in the session state
+st.sidebar.subheader("Debug Info")
+st.sidebar.write(f"Username: {st.session_state.get('username', 'Not set')}")
+st.sidebar.write(f"Role: {st.session_state.get('role', 'Not set')}")
+st.sidebar.write(f"All session state keys: {list(st.session_state.keys())}")
+
+# Only admins allowed - Fixed check
 if "username" not in st.session_state or st.session_state.get("role") != "admin":
     st.warning("You must be an admin to access this page.")
     st.stop()
@@ -70,11 +76,17 @@ else:
                 key=f"status_{req['_id']}"
             )
 
+            assigned_to = req.get("assigned_to", "Not Assigned")
+            assigned_to_list = ["Not Assigned"] + servicemen
+
+            # Ensure the assigned_to value exists in the list, otherwise default to "Not Assigned"
+            if assigned_to not in assigned_to_list:
+                assigned_to = "Not Assigned"
+
             assigned_to = st.selectbox(
                 "Assign to Serviceman",
-                ["Not Assigned"] + servicemen,
-                index=(["Not Assigned"] +
-                       servicemen).index(req.get("assigned_to", "Not Assigned")),
+                assigned_to_list,
+                index=assigned_to_list.index(assigned_to),
                 key=f"assign_{req['_id']}"
             )
 
@@ -158,7 +170,6 @@ else:
                         str(req["_id"]), st.session_state["username"])
 
                 st.success("✅ Updated successfully!")
-                st.experimental_rerun()
 
 # ---------------------------
 # Admin Tools Sidebar

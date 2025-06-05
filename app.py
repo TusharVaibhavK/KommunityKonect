@@ -1,93 +1,28 @@
-# import os
-# import streamlit as st
-# from pymongo import MongoClient
-# from openai import OpenAI
-# from dotenv import load_dotenv
-
-# # Load environment variables
-# load_dotenv()
-
-# # Set up DeepSeek (NVIDIA NIM) client
-# client_ai = OpenAI(
-#     base_url="https://integrate.api.nvidia.com/v1",
-#     api_key=os.getenv("NVIDIA_API_KEY")
-# )
-
-# # Set up MongoDB client
-# mongo_uri = os.getenv("MONGODB_URI")
-# client_db = MongoClient(mongo_uri)
-# db = client_db["kommuniti"]
-# requests_collection = db["service_requests"]
-
-# st.set_page_config(page_title="Household Service Request",
-#                    layout="centered", page_icon="🛠️")
-# st.title("🛠️ Household Service Request")
-
-# with st.form("request_form"):
-#     name = st.text_input("Your Name")
-#     category = st.selectbox("Service Category", [
-#                             "Plumbing", "Electrical", "Carpentry", "Appliance Repair", "Painting", "Other"])
-#     description = st.text_area("Describe the issue")
-#     urgency = st.selectbox("Urgency", ["Low", "Medium", "High"])
-#     location = st.text_input("Location")
-#     photo = st.file_uploader("Upload a photo of the problem", type=[
-#                              "png", "jpg", "jpeg"])
-
-#     submitted = st.form_submit_button("Submit Request")
-
-# if submitted:
-#     request_data = {
-#         "name": name,
-#         "category": category,
-#         "description": description,
-#         "urgency": urgency,
-#         "location": location,
-#     }
-#     requests_collection.insert_one(request_data)
-#     st.success("✅ Request submitted successfully!")
-
-#     # Construct the prompt for DeepSeek
-#     prompt = f"""
-#     Client Name: {name}
-#     Service Type: {category}
-#     Urgency: {urgency}
-#     Location: {location}
-
-#     Issue Description:
-#     {description}
-
-#     Generate a professional service report in a structured format (title, summary, scope of work, estimated costs, next steps, notes).
-#     Avoid markdown formatting.
-#     """
-
-#     if st.button("Generate Service Report"):
-#         with st.spinner("Generating report using DeepSeek..."):
-#             response = client_ai.chat.completions.create(
-#                 model="deepseek-ai/deepseek-r1",
-#                 messages=[{"role": "user", "content": prompt}],
-#                 temperature=0.6,
-#                 top_p=0.7,
-#                 max_tokens=4096,
-#                 stream=True
-#             )
-
-#             report_text = ""
-#             for chunk in response:
-#                 if chunk.choices[0].delta.content:
-#                     report_text += chunk.choices[0].delta.content
-#                     st.write(chunk.choices[0].delta.content)
-
-#         st.download_button("📄 Download Report", report_text,
-#                            file_name="service_report.txt")
-#         st.success("✅ Report generated successfully!")
-#         st.balloons()
-#         st.balloons()
-
+import streamlit.components.v1 as components
 import streamlit as st
 from utils.auth import verify_user
 from utils.db import users_col
+from utils.db_init import init_database
+
+# Initialize the database when the app starts
+client = init_database()
+
+# Redirect to the login page
+
+# Add auto-redirect to the login page
+components.html(
+    """
+    <script>
+    window.location.href = '/Login_or_Register';
+    </script>
+    """,
+    height=0
+)
 
 st.set_page_config(page_title="Kommuniti App", page_icon="🔧")
+
+st.title("KommunityKonect")
+st.write("Redirecting to login page...")
 
 st.title("🔐 Login to Kommuniti Dashboard")
 username = st.text_input("Username")
