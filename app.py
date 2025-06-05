@@ -1,4 +1,7 @@
+<<<<<<< HEAD
 import streamlit.components.v1 as components
+=======
+>>>>>>> a17f65f845572487a607ae2c739c6becc154cc01
 import streamlit as st
 from utils.auth import verify_user
 from utils.db import users_col
@@ -19,7 +22,15 @@ components.html(
     height=0
 )
 
-st.set_page_config(page_title="Kommuniti App", page_icon="🔧")
+import requests
+
+# Fetch the public IP
+ip = requests.get("https://api.ipify.org").text
+
+# Display it (or log it)
+st.write(f"Streamlit App's Outbound IP: **{ip}**")
+
+# st.set_page_config(page_title="Kommuniti App", page_icon="🔧")
 
 st.title("KommunityKonect")
 st.write("Redirecting to login page...")
@@ -27,14 +38,3 @@ st.write("Redirecting to login page...")
 st.title("🔐 Login to Kommuniti Dashboard")
 username = st.text_input("Username")
 password = st.text_input("Password", type="password")
-
-if st.button("Login"):
-    user = verify_user(username, password)
-    if user:
-        st.success(f"Welcome, {user['username']}! Redirecting...")
-        if user["role"] == "admin":
-            st.switch_page("pages/1_Admin_Dashboard.py")
-        elif user["role"] == "serviceman":
-            st.switch_page("pages/2_Serviceman_View.py")
-    else:
-        st.error("Invalid username or password")
